@@ -5,9 +5,9 @@ func main() {
 	if err != nil {
 		Fatal(err)
 	}
-	ds := NewDataStore()
+	data := NewAccountingData()
 	for _, fileName := range flags.AccountingFiles {
-		if err = ds.ParseAccountingFile(fileName); err != nil {
+		if err = data.ReadFile(fileName); err != nil {
 			Fatal(err)
 		}
 	}
