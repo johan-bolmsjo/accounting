@@ -21,9 +21,9 @@ type AccountingData struct {
 }
 
 type Alias struct {
-	name        string
-	accountName string
-	lineMeta    LineMeta
+	name     string
+	account  AccountName
+	lineMeta LineMeta
 }
 
 const (
@@ -35,7 +35,7 @@ const (
 type Transaction struct {
 	date     time.Time
 	amount   float64
-	accounts [drcr]string
+	accounts [drcr]AccountName
 }
 
 func NewAccountingData() *AccountingData {
@@ -59,12 +59,12 @@ func (data *AccountingData) GetDate() time.Time {
 	return data.currentDate
 }
 
-func (data *AccountingData) AddAlias(aliasName, accountName string, lineMeta *LineMeta) error {
-	if oldAlias := data.aliases[aliasName]; oldAlias != nil {
+func (data *AccountingData) AddAlias(alias string, account AccountName, lineMeta *LineMeta) error {
+	if t := data.aliases[alias]; t != nil {
 		return lineMeta.ErrorAt(fmt.Sprintf("alias '%s' redefined, first seen at '%s'",
-			aliasName, &oldAlias.lineMeta))
+			alias, &t.lineMeta))
 	}
-	data.aliases[aliasName] = &Alias{name: aliasName, accountName: accountName, lineMeta: *lineMeta}
+	data.aliases[alias] = &Alias{name: alias, account: account, lineMeta: *lineMeta}
 	return nil
 }
 
@@ -95,8 +95,8 @@ func (data *AccountingData) ReadFile(fileName string) error {
 	for scanner.Scan() {
 		line := Line{
 			meta: LineMeta{
-				fileName:   fileName,
-				lineNumber: lineNumber,
+				file: fileName,
+				line: lineNumber,
 			},
 			row: bytes.Fields(scanner.Bytes()),
 		}
@@ -126,11 +126,13 @@ func (data *AccountingData) ReadFile(fileName string) error {
 }
 
 const (
-	accountingDateFormat = "2006-01-02"
+	dateFormatYear         = "2006"
+	dateFormatYearMonth    = "2006-01"
+	dateFormatYearMonthDay = "2006-01-02"
+	accountingDateFormat   = dateFormatYearMonthDay
 )
 
-var accountNameRegexp = regexp.MustCompile("^([adei]:[a-z.-]+)$")
-var aliasNameRegexp = regexp.MustCompile("^([a-z.-]+)$")
+var aliasNameRegexp = regexp.MustCompile("^[a-z-]+$")
 
 type Line struct {
 	meta LineMeta
@@ -166,15 +168,15 @@ func (line *Line) IsTransaction() bool {
 }
 
 func (line *Line) ParseAlias(data *AccountingData) error {
-	aliasName := line.row[1]
-	accountName := line.row[2]
-	if !aliasNameRegexp.Match(aliasName) {
+	alias := line.row[1]
+	account := AccountName(line.row[2])
+	if !aliasNameRegexp.Match(alias) {
 		return line.meta.ErrorAt("invalid alias name")
 	}
-	if !accountNameRegexp.Match(accountName) {
+	if !account.Valid() {
 		return line.meta.ErrorAt("invalid account name reference by alias")
 	}
-	return data.AddAlias(string(aliasName), string(accountName), &line.meta)
+	return data.AddAlias(string(alias), AccountName(account), &line.meta)
 }
 
 func (line *Line) ParseDate(data *AccountingData) error {
@@ -206,16 +208,16 @@ func (line *Line) ParseTransaction(data *AccountingData) error {
 		return line.meta.ErrorAt("transaction without previous date")
 	}
 
-	for i, accountName := range line.row[1:] {
-		transaction.accounts[i] = string(accountName)
-		if aliasNameRegexp.Match(accountName) {
-			if alias := data.GetAlias(string(accountName)); alias != nil {
-				transaction.accounts[i] = alias.accountName
+	for i, account := range line.row[1:] {
+		transaction.accounts[i] = AccountName(account)
+		if aliasNameRegexp.Match(account) {
+			if alias := data.GetAlias(string(account)); alias != nil {
+				transaction.accounts[i] = alias.account
 			} else {
-				return line.meta.ErrorAt(fmt.Sprintf("referenced alias '%s' is undefined", accountName))
+				return line.meta.ErrorAt(fmt.Sprintf("referenced alias '%s' is undefined", account))
 			}
-		} else if !accountNameRegexp.Match(accountName) {
-			return line.meta.ErrorAt(fmt.Sprintf("invalid account name '%s'", accountName))
+		} else if !transaction.accounts[i].Valid() {
+			return line.meta.ErrorAt(fmt.Sprintf("invalid account name '%s'", account))
 		}
 	}
 
@@ -224,12 +226,12 @@ func (line *Line) ParseTransaction(data *AccountingData) error {
 }
 
 type LineMeta struct {
-	fileName   string
-	lineNumber int
+	file string
+	line int
 }
 
 func (meta *LineMeta) String() string {
-	return fmt.Sprintf("%s:%d", meta.fileName, meta.lineNumber)
+	return fmt.Sprintf("%s:%d", meta.file, meta.line)
 }
 
 func (meta *LineMeta) ErrorAt(desc string) error {
