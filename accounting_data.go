@@ -202,6 +202,10 @@ func (line *Line) ParseTransaction(data *AccountingData) error {
 		date:   data.GetDate(),
 		amount: amount,
 	}
+	if transaction.date.IsZero() {
+		return line.meta.ErrorAt("transaction without previous date")
+	}
+
 	for i, accountName := range line.row[1:] {
 		transaction.accounts[i] = string(accountName)
 		if aliasNameRegexp.Match(accountName) {
