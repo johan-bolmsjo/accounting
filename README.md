@@ -3,8 +3,16 @@ A simple accounting program written in [Go](https://golang.org).
 The program produces monthly and yearly text reports over assets, debts,
 expenses and incomes read from transaction lists.
 
+Building
+========
+
+To build the program first install go as instructed on
+[Go-Install](https://golang.org/doc/install)
+
+When go is installed run `go install` to install the program.
+
 Usage
------
+=====
 
 accounting -o output-dir accounting-files
 
@@ -12,9 +20,10 @@ The program takes one mandatory output directory specified using the -o flag and
 one or more input text files.
 
 Input format
-------------
+============
 
-### Accounting
+Accounting
+----------
 
 All transactions must be preceded by a date of the format "YYYY-MM-DD" on a
 single line. The transaction format is "amount debit credit". The amount format
@@ -46,7 +55,8 @@ Example:
     50   e:food.takeout  salary
     25   e:food.snacks   salary
 
-### Aliases
+Aliases
+-------
 
 Aliases can be used to shorten (often used) account names.
 
@@ -56,7 +66,7 @@ Example:
 Alias names may not contain the account type prefix codes to avoid ambiguities.
 
 Reports
--------
+=======
 
 Four reports are generated, monthly and yearly into the output directory
 specified on the command line.
