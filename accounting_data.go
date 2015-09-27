@@ -26,11 +26,16 @@ type Alias struct {
 	lineMeta    LineMeta
 }
 
+const (
+	dr   = 0
+	cr   = 1
+	drcr = 2
+)
+
 type Transaction struct {
-	date      time.Time
-	amount    float64
-	drAccount string
-	crAccount string
+	date     time.Time
+	amount   float64
+	accounts [drcr]string
 }
 
 func NewAccountingData() *AccountingData {
@@ -50,6 +55,10 @@ func (data *AccountingData) SetDate(date time.Time, lineMeta *LineMeta) error {
 	return nil
 }
 
+func (data *AccountingData) GetDate() time.Time {
+	return data.currentDate
+}
+
 func (data *AccountingData) AddAlias(aliasName, accountName string, lineMeta *LineMeta) error {
 	if oldAlias := data.aliases[aliasName]; oldAlias != nil {
 		return lineMeta.ErrorAt(fmt.Sprintf("alias '%s' redefined, first seen at '%s'",
@@ -63,13 +72,7 @@ func (data *AccountingData) GetAlias(aliasName string) *Alias {
 	return data.aliases[aliasName]
 }
 
-func (data *AccountingData) AddTransaction(amount float64, drAccount, crAccount string) {
-	transaction := &Transaction{
-		date:      data.currentDate,
-		amount:    amount,
-		drAccount: drAccount,
-		crAccount: crAccount,
-	}
+func (data *AccountingData) AddTransaction(transaction *Transaction) {
 	data.transactions = append(data.transactions, transaction)
 }
 
@@ -156,7 +159,7 @@ func (line *Line) IsDate() bool {
 }
 
 func (line *Line) IsTransaction() bool {
-	if len(line.row) == 3 {
+	if len(line.row) == (1 + drcr) {
 		return true
 	}
 	return false
@@ -194,12 +197,16 @@ func (line *Line) ParseTransaction(data *AccountingData) error {
 	if err != nil {
 		return line.meta.ErrorAt("invalid value")
 	}
-	var accountNames [2]string
+
+	transaction := &Transaction{
+		date:   data.GetDate(),
+		amount: amount,
+	}
 	for i, accountName := range line.row[1:] {
-		accountNames[i] = string(accountName)
+		transaction.accounts[i] = string(accountName)
 		if aliasNameRegexp.Match(accountName) {
-			if alias := data.GetAlias(accountNames[i]); alias != nil {
-				accountNames[i] = alias.accountName
+			if alias := data.GetAlias(string(accountName)); alias != nil {
+				transaction.accounts[i] = alias.accountName
 			} else {
 				return line.meta.ErrorAt(fmt.Sprintf("referenced alias '%s' is undefined", accountName))
 			}
@@ -208,7 +215,7 @@ func (line *Line) ParseTransaction(data *AccountingData) error {
 		}
 	}
 
-	data.AddTransaction(amount, accountNames[0], accountNames[1])
+	data.AddTransaction(transaction)
 	return nil
 }
 
