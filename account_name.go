@@ -7,6 +7,30 @@ import (
 
 type AccountName string
 
+type AccountType int
+
+const (
+	AccountTypeNone AccountType = iota
+	AccountTypeAsset
+	AccountTypeDebt
+	AccountTypeExpense
+	AccountTypeIncome
+)
+
+func (typ AccountType) String() string {
+	switch typ {
+	case AccountTypeAsset:
+		return "asset"
+	case AccountTypeDebt:
+		return "debt"
+	case AccountTypeExpense:
+		return "expense"
+	case AccountTypeIncome:
+		return "income"
+	}
+	return "none"
+}
+
 // Length of the account type character and following colon.
 const AccountNameTypePrefixLen = 2
 
@@ -38,19 +62,11 @@ func (name AccountName) Leaf() string {
 	if lastIndex != -1 && len(name) > AccountNameTypePrefixLen {
 		return string(name[lastIndex+1:])
 	}
-	return name.Type()
+	return name.Type().String()
 }
 
-const (
-	AccountTypeAsset   = "asset"
-	AccountTypeDebt    = "debt"
-	AccountTypeExpense = "expense"
-	AccountTypeIncome  = "income"
-	AccountTypeNone    = "none"
-)
-
 // Return a descriptive type string based on the first character in the account name.
-func (name AccountName) Type() string {
+func (name AccountName) Type() AccountType {
 	if len(name) > 0 {
 		switch name[0] {
 		case 'a':
