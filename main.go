@@ -11,4 +11,9 @@ func main() {
 			Fatal(err)
 		}
 	}
+	for _, report := range PrepareReports(data) {
+		if err = report.Generate(flags.OutputDir); err != nil {
+			Fatal(err)
+		}
+	}
 }

@@ -3,6 +3,8 @@ A simple accounting program written in [Go](https://golang.org).
 The program produces monthly and yearly text reports over assets, debts,
 expenses and incomes read from transaction lists.
 
+**NOTE** The implementation is not finished yet.
+
 Building
 ========
 
@@ -79,7 +81,7 @@ cumulative column includes the amount of child nodes.
 
 Example:
 
-    Montly 2012-01
+    January 2012
 
     account            | amount | cumulative | delta
     -------------------+--------+------------+---------
