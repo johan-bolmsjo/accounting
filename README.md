@@ -65,6 +65,7 @@ Aliases can be used to shorten (often used) account names. The alias name is
 specified by the regexp `"^[a-z-]+$"`.
 
 Example:
+
     alias  salary  a:account.salary
 
 Alias names may not contain the account type prefix codes to avoid ambiguities.
