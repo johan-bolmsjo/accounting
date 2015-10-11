@@ -47,8 +47,8 @@ func NewAccountingData() *AccountingData {
 func (data *AccountingData) SetDate(date time.Time, lineMeta *LineMeta) error {
 	if date.Before(data.currentDate) {
 		return lineMeta.ErrorAt(fmt.Sprintf("date set to an earlier date '%s' than previous date '%s' set at '%s'",
-			date.Format(accountingDateFormat),
-			data.currentDate.Format(accountingDateFormat), &data.currentDateLineMeta))
+			date.Format(transactionDateFormat),
+			data.currentDate.Format(transactionDateFormat), &data.currentDateLineMeta))
 	}
 	data.currentDate = date
 	data.currentDateLineMeta = *lineMeta
@@ -126,10 +126,7 @@ func (data *AccountingData) ReadFile(fileName string) error {
 }
 
 const (
-	dateFormatYear         = "2006"
-	dateFormatYearMonth    = "2006-01"
-	dateFormatYearMonthDay = "2006-01-02"
-	accountingDateFormat   = dateFormatYearMonthDay
+	transactionDateFormat = "2006-01-02"
 )
 
 var aliasNameRegexp = regexp.MustCompile("^[a-z-]+$")
@@ -154,7 +151,7 @@ func (line *Line) IsAlias() bool {
 }
 
 func (line *Line) IsDate() bool {
-	if len(line.row) == 1 && len(line.row[0]) == len(accountingDateFormat) {
+	if len(line.row) == 1 && len(line.row[0]) == len(transactionDateFormat) {
 		return true
 	}
 	return false
@@ -180,7 +177,7 @@ func (line *Line) ParseAlias(data *AccountingData) error {
 }
 
 func (line *Line) ParseDate(data *AccountingData) error {
-	date, err := time.Parse(accountingDateFormat, string(line.row[0]))
+	date, err := time.Parse(transactionDateFormat, string(line.row[0]))
 	if err != nil {
 		return line.meta.ErrorAt("invalid date")
 	}

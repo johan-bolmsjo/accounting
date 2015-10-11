@@ -65,6 +65,16 @@ func (name AccountName) Leaf() string {
 	return name.Type().String()
 }
 
+// Get the depth of the account name grouping.
+// The account name is assumed to be valid as indicated by Valid().
+// Example: "e:food.snacks" -> 2, "e:food" -> 1, "e:" -> 0
+func (name AccountName) Depth() int {
+	if len(name) == AccountNameTypePrefixLen {
+		return 0
+	}
+	return 1 + strings.Count(string(name), ".")
+}
+
 // Return a descriptive type string based on the first character in the account name.
 func (name AccountName) Type() AccountType {
 	if len(name) > 0 {

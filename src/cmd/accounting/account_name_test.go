@@ -25,6 +25,17 @@ func ExampleAccountNameLeaf() {
 	// snacks food expense
 }
 
+func ExampleAccountNameDepth() {
+	names := []AccountName{
+		"e:food.snacks", "e:food", "e:",
+	}
+	for _, name := range names {
+		fmt.Printf("%d ", name.Depth())
+	}
+	// Output:
+	// 2 1 0
+}
+
 func ExampleAccountNameType() {
 	names := []AccountName{
 		"a:", "d:", "e:", "i:", "z:", "",

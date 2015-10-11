@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"table"
 	"time"
 )
-
-//const (
-//	dateFormatYear         = "2006"
-//	dateFormatYearMonth    = "2006-01"
-//	dateFormatYearMonthDay = "2006-01-02"
-//)
 
 type ReportPeriod int
 
@@ -39,16 +39,17 @@ type Report struct {
 }
 
 // Adds transaction to log and updates accounts.
-func (report *Report) AddTransaction(t *Transaction) {
-	for i, accountName := range t.accounts {
+func (report *Report) AddTransaction(tr *Transaction) {
+	for i, accountName := range tr.accounts {
 		account := report.GetAccount(accountName)
-		account.flat[i] += t.amount
+		account.flat[i] += tr.amount
 
 		for ; accountName != ""; accountName = accountName.Parent() {
 			account := report.GetAccount(accountName)
-			account.cumulative[i] += t.amount
+			account.cumulative[i] += tr.amount
 		}
 	}
+	report.transactions = append(report.transactions, tr)
 }
 
 // Lookup existing or add new account to the report.
@@ -96,6 +97,22 @@ func (report *Report) UntilPeriod(curr time.Time) *Report {
 	return report
 }
 
+// Return the account delta computed from the cumulative balance of the current
+// and previous report.
+func (report *Report) AccountDelta(name AccountName) float64 {
+	var curr, prev float64
+
+	if account := report.accounts[name]; account != nil {
+		curr = account.CumulativeBalance()
+	}
+	if report.prev != nil {
+		if account := report.prev.accounts[name]; account != nil {
+			prev = account.CumulativeBalance()
+		}
+	}
+	return curr - prev
+}
+
 // Account data stored in reports.
 type Account struct {
 	name       AccountName
@@ -124,24 +141,24 @@ func (account *Account) CumulativeBalance() float64 {
 // Prepare reports from accounting data.
 func PrepareReports(data *AccountingData) []*Report {
 	var periods [ReportPeriodCount]*Report
-	for i, t := range data.Transactions() {
+	for i, tr := range data.Transactions() {
 		if i == 0 {
 			periods[ReportPeriodYearly] = &Report{
 				period:   ReportPeriodYearly,
-				from:     time.Date(t.date.Year(), time.January, 1, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(t.date.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC),
+				from:     time.Date(tr.date.Year(), time.January, 1, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(tr.date.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC),
 				accounts: make(map[AccountName]*Account),
 			}
 			periods[ReportPeriodMonthly] = &Report{
 				period:   ReportPeriodMonthly,
-				from:     time.Date(t.date.Year(), t.date.Month(), 1, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(t.date.Year(), t.date.Month()+1, 1, 0, 0, 0, 0, time.UTC),
+				from:     time.Date(tr.date.Year(), tr.date.Month(), 1, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(tr.date.Year(), tr.date.Month()+1, 1, 0, 0, 0, 0, time.UTC),
 				accounts: make(map[AccountName]*Account),
 			}
 		}
 		for j, _ := range periods {
-			periods[j] = periods[j].UntilPeriod(t.date)
-			periods[j].AddTransaction(t)
+			periods[j] = periods[j].UntilPeriod(tr.date)
+			periods[j].AddTransaction(tr)
 		}
 	}
 
@@ -154,19 +171,112 @@ func PrepareReports(data *AccountingData) []*Report {
 	return reports
 }
 
+// Sort interface to sort by account name.
+type sortByAccountName []*Account
+
+func (a sortByAccountName) Len() int      { return len(a) }
+func (a sortByAccountName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a sortByAccountName) Less(i, j int) bool {
+	// Substitute '.' with ' ' when sorting to get the account grouping right.
+	return strings.Replace(string(a[i].name), ".", " ", -1) < strings.Replace(string(a[j].name), ".", " ", -1)
+}
+
+const indentAmount = 4
+
+func balanceToString(v float64) string {
+	s := fmt.Sprintf("%.2f", v)
+	if s == "0.00" {
+		s = "-"
+	}
+	return s
+}
+
 // Generate reports to output directory.
 func (report *Report) Generate(outputDir string) error {
+	var buf bytes.Buffer
+	var filename string
 
-	// TODO(jb) These are just test logs.
-
-	fmt.Printf("\n\n*** %v\n\n", report.from)
-
-	for _, account := range report.accounts {
-		fmt.Printf("%s  %f\n", account.name, account.CumulativeBalance())
+	switch report.period {
+	case ReportPeriodMonthly:
+		fmt.Fprintf(&buf, "%s %d\n\n", report.from.Month(), report.from.Year())
+		filename = filepath.Join(outputDir, fmt.Sprintf("%d-%02d.txt", report.from.Year(), report.from.Month()))
+	case ReportPeriodYearly:
+		fmt.Fprintf(&buf, "%d\n\n", report.from.Year())
+		filename = filepath.Join(outputDir, fmt.Sprintf("%d.txt", report.from.Year()))
+	default:
+		return fmt.Errorf("unsupported report period %d", report.period)
 	}
 
-	//date.Format(dateFormatYear)
-	//date.Format(dateFormatYearMonth)
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
+	var accounts []*Account
+	for _, account := range report.accounts {
+		accounts = append(accounts, account)
+	}
+	sort.Sort(sortByAccountName(accounts))
+
+	// Account summary
+	t := new(table.Table)
+	t.SetTitles(table.Row{
+		{Content: "account"},
+		{Content: "amount"},
+		{Content: "cumulative"},
+		{Content: "delta"},
+	})
+
+	for _, account := range accounts {
+		cumulativeStr := balanceToString(account.CumulativeBalance())
+		deltaStr := fmt.Sprintf("%+.2f", report.AccountDelta(account.name))
+
+		if cumulativeStr != "-" || deltaStr != "+0.00" {
+			t.AddRow(table.Row{
+				{Content: account.name.Leaf(), PadLeft: uint(indentAmount * account.name.Depth())},
+				{Content: balanceToString(account.FlatBalance()), Align: table.AlignRight},
+				{Content: cumulativeStr, Align: table.AlignRight},
+				{Content: deltaStr, Align: table.AlignRight},
+			})
+		}
+	}
+	buf.Write(t.RenderText())
+
+	// Transaction log
+	fmt.Fprintf(&buf, "\nTransactions\n\n")
+
+	t = new(table.Table)
+	t.SetTitles(table.Row{
+		{Content: "date"},
+		{Content: "account"},
+		{Content: "debit"},
+		{Content: "credit"},
+	})
+
+	var prevDate time.Time
+	for _, tr := range report.transactions {
+		var dateStr string
+		if tr.date != prevDate {
+			dateStr = tr.date.Format(transactionDateFormat)
+		}
+		prevDate = tr.date
+
+		t.AddRow(table.Row{
+			{Content: dateStr},
+			{Content: string(tr.accounts[Dr])},
+			{Content: fmt.Sprintf("%.2f", tr.amount), Align: table.AlignRight},
+			{Content: ""},
+		})
+		t.AddRow(table.Row{
+			{Content: ""},
+			{Content: string(tr.accounts[Cr])},
+			{Content: ""},
+			{Content: fmt.Sprintf("%.2f", tr.amount), Align: table.AlignRight},
+		})
+	}
+	buf.Write(t.RenderText())
+
+	fmt.Fprintf(file, "%s", buf.Bytes())
 	return nil
 }
