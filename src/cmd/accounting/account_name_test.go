@@ -49,12 +49,20 @@ func ExampleAccountNameType() {
 
 func ExampleAccountNameValid() {
 	names := []AccountName{
-		"a:", "a:account", "a:account.salary",
-		"", "a", "a.", "a:.", "a: ", "a:account.", "a:.account", "z:",
+		"a:", "a:account", "a:account.salary", "", "a",
+		"a.", "a:.", "a: ", "a:account.", "a:.account",
+		"z:", "ö:", "e:mat.surströmming",
 	}
 	for i, name := range names {
-		fmt.Printf("%d:%v ", i, name.Valid())
+		fmt.Printf("%d:%v", i, name.Valid())
+		if (i+1)%5 != 0 {
+			fmt.Printf(" ")
+		} else {
+			fmt.Printf("\n")
+		}
 	}
 	// Output:
-	// 0:true 1:true 2:true 3:false 4:false 5:false 6:false 7:false 8:false 9:false 10:false
+	// 0:true 1:true 2:true 3:false 4:false
+	// 5:false 6:false 7:false 8:false 9:false
+	// 10:false 11:false 12:true
 }

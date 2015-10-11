@@ -92,7 +92,7 @@ func (name AccountName) Type() AccountType {
 	return AccountTypeNone
 }
 
-var accountNameRegexp = regexp.MustCompile("^[adei]:([a-z-]+(\\.[a-z-]+)*|)$")
+var accountNameRegexp = regexp.MustCompile("^[adei]:([\\pL-]+(\\.[\\pL-]+)*|)$")
 
 // Check if the account name is valid according to the accounting file format
 // specification.

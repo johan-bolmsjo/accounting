@@ -33,7 +33,7 @@ All transactions must be preceded by a date of the format `"YYYY-MM-DD"` on a
 single line. The transaction format is `"amount debit-account credit-account"`.
 The amount format is a numeric floating point number with `"."` or `","` as the
 decimal point. The account format is specified by the regexp
-`"^[adei]:([a-z-]+(\.[a-z-]+)*|)$"`. The first letter followed by the colon
+`"^[adei]:([\pL-]+(\.[\pL-]+)*|)$"`. The first letter followed by the colon
 indicates the account type. Only four types are supported.
 
     a: Asset   (amount = debits - credits)
@@ -64,7 +64,7 @@ Aliases
 -------
 
 Aliases can be used to shorten (often used) account names. The alias name is
-specified by the regexp `"^[a-z-]+$"`.
+specified by the regexp `"^[\pL-]+$"`.
 
 Example:
 

@@ -15,7 +15,7 @@ func createTestTable(titles, rows, emptyRow bool) *Table {
 	}
 	if rows {
 		t.AddRow(Row{
-			{"Apple", 0, 0, AlignRight},
+			{"Äpple", 0, 0, AlignRight}, // Use UTF-8 character to test padding and alignment
 			{"10", 0, 5, AlignRight},
 		})
 		if emptyRow {
@@ -43,7 +43,7 @@ func ExampleTitlesAndRows() {
 	// Output:
 	// Fruit      | Price   | Notes    |
 	// -----------+---------+----------+-------------
-	//      Apple | 10      |          |
+	//      Äpple | 10      |          |
 	//   Banana   |       5 | Overripe |
 	// Red Grapes |   17    |          | Extra column
 }
@@ -59,7 +59,7 @@ func ExampleRowsOnly() {
 	fmt.Printf("!\n%s", createTestTable(false, true, false))
 	// Output:
 	// !
-	//      Apple | 10      |          |
+	//      Äpple | 10      |          |
 	//   Banana   |       5 | Overripe |
 	// Red Grapes |   17    |          | Extra column
 }
@@ -69,7 +69,7 @@ func ExampleEmptyRow() {
 	// Output:
 	// Fruit      | Price   | Notes |
 	// -----------+---------+-------+-------------
-	//      Apple | 10      |       |
+	//      Äpple | 10      |       |
 	//            |         |       |
 	// Red Grapes |   17    |       | Extra column
 }
@@ -77,12 +77,12 @@ func ExampleEmptyRow() {
 func ExampleSingleColumn() {
 	t := new(Table)
 	t.SetTitles(Row{{Content: "Fruit"}})
-	t.AddRow(Row{{Content: "Apple"}})
+	t.AddRow(Row{{Content: "Äpple"}})
 	t.AddRow(Row{{Content: "Banana"}})
 	fmt.Printf("%s", t)
 	// Output:
 	// Fruit
 	// ------
-	// Apple
+	// Äpple
 	// Banana
 }

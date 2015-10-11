@@ -3,6 +3,7 @@ package table
 import (
 	"bytes"
 	"fmt"
+	"unicode/utf8"
 )
 
 // Table containing column titles and rows.
@@ -49,7 +50,7 @@ func updateColumnWidths(widths *[]int, row Row) {
 		*widths = append(*widths, 0)
 	}
 	for i, cell := range row {
-		l := len(cell.Content) + int(cell.PadLeft+cell.PadRight)
+		l := utf8.RuneCountInString(cell.Content) + int(cell.PadLeft+cell.PadRight)
 		if l > (*widths)[i] {
 			(*widths)[i] = l
 		}
@@ -126,7 +127,7 @@ func (cell *Cell) renderText(cellWidth int) []byte {
 		buf = append(buf, fill(' ', int(cell.PadRight))...)
 	}
 
-	pad := cellWidth - len(buf)
+	pad := cellWidth - utf8.RuneCount(buf)
 	var padLeft, padRight int
 	switch cell.Align {
 	case AlignRight:
