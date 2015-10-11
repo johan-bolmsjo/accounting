@@ -27,15 +27,15 @@ type Alias struct {
 }
 
 const (
-	dr   = 0
-	cr   = 1
-	drcr = 2
+	Dr   = 0
+	Cr   = 1
+	DrCr = 2
 )
 
 type Transaction struct {
 	date     time.Time
 	amount   float64
-	accounts [drcr]AccountName
+	accounts [DrCr]AccountName
 }
 
 func NewAccountingData() *AccountingData {
@@ -161,7 +161,7 @@ func (line *Line) IsDate() bool {
 }
 
 func (line *Line) IsTransaction() bool {
-	if len(line.row) == (1 + drcr) {
+	if len(line.row) == (1 + DrCr) {
 		return true
 	}
 	return false

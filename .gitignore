@@ -1,3 +1,4 @@
-accounting
 *.out
 *~
+bin/
+pkg/

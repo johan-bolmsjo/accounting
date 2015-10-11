@@ -5,20 +5,26 @@ import (
 	"time"
 )
 
-type reportPeriod int
+//const (
+//	dateFormatYear         = "2006"
+//	dateFormatYearMonth    = "2006-01"
+//	dateFormatYearMonthDay = "2006-01-02"
+//)
+
+type ReportPeriod int
 
 const (
-	reportPeriodYearly reportPeriod = iota
-	reportPeriodMonthly
-	reportPeriodCount
+	ReportPeriodYearly ReportPeriod = iota
+	ReportPeriodMonthly
+	ReportPeriodCount
 )
 
 // Returns the number of months the report period corresponds to.
-func (period reportPeriod) months() int {
+func (period ReportPeriod) Months() int {
 	switch period {
-	case reportPeriodYearly:
+	case ReportPeriodYearly:
 		return 12
-	case reportPeriodMonthly:
+	case ReportPeriodMonthly:
 		return 1
 	}
 	return 0
@@ -26,27 +32,27 @@ func (period reportPeriod) months() int {
 
 type Report struct {
 	prev         *Report
-	period       reportPeriod
+	period       ReportPeriod
 	from, to     time.Time // Report interval [from, to)
 	transactions []*Transaction
 	accounts     map[AccountName]*Account
 }
 
 // Adds transaction to log and updates accounts.
-func (report *Report) addTransaction(t *Transaction) {
+func (report *Report) AddTransaction(t *Transaction) {
 	for i, accountName := range t.accounts {
-		account := report.getAccount(accountName)
+		account := report.GetAccount(accountName)
 		account.flat[i] += t.amount
 
 		for ; accountName != ""; accountName = accountName.Parent() {
-			account := report.getAccount(accountName)
+			account := report.GetAccount(accountName)
 			account.cumulative[i] += t.amount
 		}
 	}
 }
 
 // Lookup existing or add new account to the report.
-func (report *Report) getAccount(name AccountName) *Account {
+func (report *Report) GetAccount(name AccountName) *Account {
 	if account, ok := report.accounts[name]; ok {
 		return account
 	}
@@ -56,7 +62,7 @@ func (report *Report) getAccount(name AccountName) *Account {
 }
 
 // Copy accounts of the specified type from another report.
-func (report *Report) copyAccountsOfType(from *Report, typ AccountType) {
+func (report *Report) CopyAccountsOfType(from *Report, typ AccountType) {
 	for k, v := range from.accounts {
 		if k.Type() == typ {
 			accountCopy := *v
@@ -67,8 +73,8 @@ func (report *Report) copyAccountsOfType(from *Report, typ AccountType) {
 
 // Get the report for the next period.
 // The old report becomes the previous report of the new report.
-func (report *Report) nextPeriod() *Report {
-	nextToMonth := report.to.Month() + time.Month(report.period.months())
+func (report *Report) NextPeriod() *Report {
+	nextToMonth := report.to.Month() + time.Month(report.period.Months())
 	nextReport := &Report{
 		prev:     report,
 		period:   report.period,
@@ -76,16 +82,16 @@ func (report *Report) nextPeriod() *Report {
 		to:       time.Date(report.to.Year(), nextToMonth, 1, 0, 0, 0, 0, time.UTC),
 		accounts: make(map[AccountName]*Account),
 	}
-	nextReport.copyAccountsOfType(report, AccountTypeAsset)
-	nextReport.copyAccountsOfType(report, AccountTypeDebt)
+	nextReport.CopyAccountsOfType(report, AccountTypeAsset)
+	nextReport.CopyAccountsOfType(report, AccountTypeDebt)
 	return nextReport
 }
 
 // Create reports until arriving on time.
 // Returns the report corresponding to time.
-func (report *Report) untilPeriod(curr time.Time) *Report {
+func (report *Report) UntilPeriod(curr time.Time) *Report {
 	for curr.After(report.to) || curr.Equal(report.to) {
-		report = report.nextPeriod()
+		report = report.NextPeriod()
 	}
 	return report
 }
@@ -93,49 +99,49 @@ func (report *Report) untilPeriod(curr time.Time) *Report {
 // Account data stored in reports.
 type Account struct {
 	name       AccountName
-	flat       [drcr]float64 // Amounts accounted specifically to this account
-	cumulative [drcr]float64 // Amounts accounted to this account and all child accounts.
+	flat       [DrCr]float64 // Amounts accounted specifically to this account
+	cumulative [DrCr]float64 // Amounts accounted to this account and all child accounts.
 }
 
-func balance(typ AccountType, val *[drcr]float64) float64 {
+func balance(typ AccountType, val *[DrCr]float64) float64 {
 	switch typ {
 	case AccountTypeAsset, AccountTypeExpense:
-		return val[dr] - val[cr]
+		return val[Dr] - val[Cr]
 	case AccountTypeDebt, AccountTypeIncome:
-		return val[cr] - val[dr]
+		return val[Cr] - val[Dr]
 	}
 	return 0
 }
 
-func (account *Account) flatBalance() float64 {
+func (account *Account) FlatBalance() float64 {
 	return balance(account.name.Type(), &account.flat)
 }
 
-func (account *Account) cumulativeBalance() float64 {
+func (account *Account) CumulativeBalance() float64 {
 	return balance(account.name.Type(), &account.cumulative)
 }
 
 // Prepare reports from accounting data.
 func PrepareReports(data *AccountingData) []*Report {
-	var periods [reportPeriodCount]*Report
+	var periods [ReportPeriodCount]*Report
 	for i, t := range data.Transactions() {
 		if i == 0 {
-			periods[reportPeriodYearly] = &Report{
-				period:   reportPeriodYearly,
+			periods[ReportPeriodYearly] = &Report{
+				period:   ReportPeriodYearly,
 				from:     time.Date(t.date.Year(), time.January, 1, 0, 0, 0, 0, time.UTC),
 				to:       time.Date(t.date.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC),
 				accounts: make(map[AccountName]*Account),
 			}
-			periods[reportPeriodMonthly] = &Report{
-				period:   reportPeriodMonthly,
+			periods[ReportPeriodMonthly] = &Report{
+				period:   ReportPeriodMonthly,
 				from:     time.Date(t.date.Year(), t.date.Month(), 1, 0, 0, 0, 0, time.UTC),
 				to:       time.Date(t.date.Year(), t.date.Month()+1, 1, 0, 0, 0, 0, time.UTC),
 				accounts: make(map[AccountName]*Account),
 			}
 		}
 		for j, _ := range periods {
-			periods[j] = periods[j].untilPeriod(t.date)
-			periods[j].addTransaction(t)
+			periods[j] = periods[j].UntilPeriod(t.date)
+			periods[j].AddTransaction(t)
 		}
 	}
 
@@ -156,7 +162,7 @@ func (report *Report) Generate(outputDir string) error {
 	fmt.Printf("\n\n*** %v\n\n", report.from)
 
 	for _, account := range report.accounts {
-		fmt.Printf("%s  %f\n", account.name, account.cumulativeBalance())
+		fmt.Printf("%s  %f\n", account.name, account.CumulativeBalance())
 	}
 
 	//date.Format(dateFormatYear)

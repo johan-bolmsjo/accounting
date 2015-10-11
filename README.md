@@ -8,10 +8,14 @@ expenses and incomes read from transaction lists.
 Building
 ========
 
-To build the program first install go as instructed on
-[Go-Install](https://golang.org/doc/install)
+[Go]((https://golang.org/doc/install)) and the [GB](https://getgb.io/) build
+tool must be installed to build the software.
 
-When go is installed run `go install` to install the program.
+Once that is taken care of the program can be compiled and installed in `./bin`
+as follows.
+
+    gb build
+
 
 Usage
 =====
@@ -85,7 +89,7 @@ Example:
     January 2012
 
     account            | amount | cumulative | delta
-    -------------------+--------+------------+---------
+    -------------------+--------+------------+--------
     asset              |      - |     425.00 | +200.00
         account        |      - |     425.00 | +200.00
             salary     | 425.00 |     425.00 | +200.00
@@ -107,6 +111,6 @@ All transactions are listed at the end of the report.
 Example:
 
     date       | account          | debit  | credit
-    -----------+------------------+--------+--------
+    -----------+------------------+--------+-------
     2012-01-01 | e:food.snacks    |  25.00 |
                | a:account.salary |        |  25.00
