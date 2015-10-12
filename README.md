@@ -93,18 +93,20 @@ Example:
     asset              |      - |     425.00 | +200.00
         account        |      - |     425.00 | +200.00
             salary     | 425.00 |     425.00 | +200.00
-    expense            |      - |     100.00 |  +15.00
-        food           |  15.00 |      90.00 |  +10.00
+    expense            |      - |      92.00 |  +15.00
+        food           |  15.00 |      82.00 |  +10.00
             groceries  |  50.00 |      50.00 |  +25.00
             snacks     |  25.00 |      25.00 |    0.00
-			takeout    |      - |          - |  -20.00
+            takeout    |   7.00 |       7.00 |  -20.00
         drinks         |  10.00 |      10.00 |    0.00
 
 Values in expense and income accounts are based on transactions from the current
 report period while values in asset and debt accounts are based on all previous
 transactions. The delta column show change of the cumulative value compared to
-the previous report period. Accounts with zero cumulative and delta values are
-suppressed.
+the previous report period. At the moment delta values are not shown for expense
+and income accounts without transactions for the current period. This was tried
+but was found to be too cluttered. Accounts with zero cumulative and delta
+values are suppressed.
 
 All transactions are listed at the end of the report.
 
