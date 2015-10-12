@@ -3,6 +3,8 @@ A simple accounting program written in [Go](https://golang.org).
 The program produces monthly and yearly text reports over assets, debts,
 expenses and incomes read from transaction lists.
 
+Please see the LICENSE file for details about licensing.
+
 Building
 ========
 
