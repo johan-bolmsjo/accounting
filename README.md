@@ -8,14 +8,13 @@ Please see the LICENSE file for details about licensing.
 Building
 ========
 
-[Go](https://golang.org) and the [GB](https://getgb.io/) build tool must be
-installed to build the software.
+[Go](https://golang.org) must be installed to build the software.
 
-Once that is taken care of the program can be compiled and installed in `./bin`
-as follows.
+Once that is taken care of the program can be installed in `~/bin` as follows.
 
-    gb build
-
+    go get github.com/johan-bolmsjo/accounting/...
+        OR
+	cd cmd/accounting && go install
 
 Usage
 =====
