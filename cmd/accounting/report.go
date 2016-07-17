@@ -15,6 +15,7 @@ type ReportPeriod int
 
 const (
 	ReportPeriodYearly ReportPeriod = iota
+	ReportPeriodQuarterly
 	ReportPeriodMonthly
 	ReportPeriodCount
 )
@@ -24,6 +25,8 @@ func (period ReportPeriod) Months() int {
 	switch period {
 	case ReportPeriodYearly:
 		return 12
+	case ReportPeriodQuarterly:
+		return 3
 	case ReportPeriodMonthly:
 		return 1
 	}
@@ -149,6 +152,13 @@ func PrepareReports(data *AccountingData) []*Report {
 				to:       time.Date(tr.date.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC),
 				accounts: make(map[AccountName]*Account),
 			}
+			quarterStartMonth := (tr.date.Month()-1)/3*3 + 1
+			periods[ReportPeriodQuarterly] = &Report{
+				period:   ReportPeriodQuarterly,
+				from:     time.Date(tr.date.Year(), quarterStartMonth, 1, 0, 0, 0, 0, time.UTC),
+				to:       time.Date(tr.date.Year(), quarterStartMonth+3, 1, 0, 0, 0, 0, time.UTC),
+				accounts: make(map[AccountName]*Account),
+			}
 			periods[ReportPeriodMonthly] = &Report{
 				period:   ReportPeriodMonthly,
 				from:     time.Date(tr.date.Year(), tr.date.Month(), 1, 0, 0, 0, 0, time.UTC),
@@ -197,12 +207,16 @@ func (report *Report) Generate(outputDir string) error {
 	var filename string
 
 	switch report.period {
-	case ReportPeriodMonthly:
-		fmt.Fprintf(&buf, "%s %d\n\n", report.from.Month(), report.from.Year())
-		filename = filepath.Join(outputDir, fmt.Sprintf("%d-%02d.txt", report.from.Year(), report.from.Month()))
 	case ReportPeriodYearly:
 		fmt.Fprintf(&buf, "%d\n\n", report.from.Year())
 		filename = filepath.Join(outputDir, fmt.Sprintf("%d.txt", report.from.Year()))
+	case ReportPeriodQuarterly:
+		quarterName := fmt.Sprintf("Q%d", (report.from.Month()-1)/3+1)
+		fmt.Fprintf(&buf, "%s %d\n\n", quarterName, report.from.Year())
+		filename = filepath.Join(outputDir, fmt.Sprintf("%d-%s.txt", report.from.Year(), quarterName))
+	case ReportPeriodMonthly:
+		fmt.Fprintf(&buf, "%s %d\n\n", report.from.Month(), report.from.Year())
+		filename = filepath.Join(outputDir, fmt.Sprintf("%d-%02d.txt", report.from.Year(), report.from.Month()))
 	default:
 		return fmt.Errorf("unsupported report period %d", report.period)
 	}
