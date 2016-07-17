@@ -14,7 +14,8 @@ import (
 type ReportPeriod int
 
 const (
-	ReportPeriodYearly ReportPeriod = iota
+	ReportPeriodInfinite ReportPeriod = iota
+	ReportPeriodYearly
 	ReportPeriodQuarterly
 	ReportPeriodMonthly
 	ReportPeriodCount
@@ -23,14 +24,14 @@ const (
 // Returns the number of months the report period corresponds to.
 func (period ReportPeriod) Months() int {
 	switch period {
+	case ReportPeriodInfinite:
+		return 12 * 1000 // Larger than a life time
 	case ReportPeriodYearly:
 		return 12
 	case ReportPeriodQuarterly:
 		return 3
-	case ReportPeriodMonthly:
-		return 1
 	}
-	return 0
+	return 1 // Monthly and everything else
 }
 
 type Report struct {
@@ -39,6 +40,24 @@ type Report struct {
 	from, to     time.Time // Report interval [from, to)
 	transactions []*Transaction
 	accounts     map[AccountName]*Account
+}
+
+// Create initial report based on report period and time of first transaction.
+func NewInitialReport(period ReportPeriod, first time.Time) *Report {
+	report := new(Report)
+	report.period = period
+	report.accounts = make(map[AccountName]*Account)
+
+	switch period {
+	case ReportPeriodInfinite:
+		report.from = first
+		report.to = first.AddDate(0, period.Months(), 0)
+	case ReportPeriodYearly, ReportPeriodQuarterly, ReportPeriodMonthly:
+		startMonth := time.Month((int(first.Month())-1)/period.Months()*period.Months() + 1)
+		report.from = time.Date(first.Year(), startMonth, 1, 0, 0, 0, 0, time.UTC)
+		report.to = time.Date(first.Year(), startMonth+time.Month(period.Months()), 1, 0, 0, 0, 0, time.UTC)
+	}
+	return report
 }
 
 // Adds transaction to log and updates accounts.
@@ -146,24 +165,8 @@ func PrepareReports(data *AccountingData) []*Report {
 	var periods [ReportPeriodCount]*Report
 	for i, tr := range data.Transactions() {
 		if i == 0 {
-			periods[ReportPeriodYearly] = &Report{
-				period:   ReportPeriodYearly,
-				from:     time.Date(tr.date.Year(), time.January, 1, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(tr.date.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC),
-				accounts: make(map[AccountName]*Account),
-			}
-			quarterStartMonth := (tr.date.Month()-1)/3*3 + 1
-			periods[ReportPeriodQuarterly] = &Report{
-				period:   ReportPeriodQuarterly,
-				from:     time.Date(tr.date.Year(), quarterStartMonth, 1, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(tr.date.Year(), quarterStartMonth+3, 1, 0, 0, 0, 0, time.UTC),
-				accounts: make(map[AccountName]*Account),
-			}
-			periods[ReportPeriodMonthly] = &Report{
-				period:   ReportPeriodMonthly,
-				from:     time.Date(tr.date.Year(), tr.date.Month(), 1, 0, 0, 0, 0, time.UTC),
-				to:       time.Date(tr.date.Year(), tr.date.Month()+1, 1, 0, 0, 0, 0, time.UTC),
-				accounts: make(map[AccountName]*Account),
+			for j, _ := range periods {
+				periods[j] = NewInitialReport(ReportPeriod(j), tr.date)
 			}
 		}
 		for j, _ := range periods {
@@ -207,6 +210,9 @@ func (report *Report) Generate(outputDir string) error {
 	var filename string
 
 	switch report.period {
+	case ReportPeriodInfinite:
+		fmt.Fprintf(&buf, "All transactions\n\n")
+		filename = filepath.Join(outputDir, "all.txt")
 	case ReportPeriodYearly:
 		fmt.Fprintf(&buf, "%d\n\n", report.from.Year())
 		filename = filepath.Join(outputDir, fmt.Sprintf("%d.txt", report.from.Year()))
