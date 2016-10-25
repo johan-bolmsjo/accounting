@@ -129,7 +129,7 @@ const (
 	transactionDateFormat = "2006-01-02"
 )
 
-var aliasNameRegexp = regexp.MustCompile("^[\\pL-]+$")
+var aliasNameRegexp = regexp.MustCompile(`^[\p{L}\p{N}-]+$`)
 
 type Line struct {
 	meta LineMeta
