@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
+	table "github.com/johan-bolmsjo/texttable"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"table"
 	"time"
 )
 
@@ -261,7 +261,7 @@ func (report *Report) Generate(outputDir string) error {
 			})
 		}
 	}
-	buf.Write(t.RenderText())
+	buf.Write(t.Render())
 
 	// Transaction log
 	fmt.Fprintf(&buf, "\nTransactions\n\n")
@@ -295,7 +295,7 @@ func (report *Report) Generate(outputDir string) error {
 			{Content: fmt.Sprintf("%.2f", tr.amount), Align: table.AlignRight},
 		})
 	}
-	buf.Write(t.RenderText())
+	buf.Write(t.Render())
 
 	fmt.Fprintf(file, "%s", buf.Bytes())
 	return nil

@@ -14,7 +14,7 @@ Once that is taken care of the program can be installed in `~/bin` as follows.
 
     go get github.com/johan-bolmsjo/accounting/...
         OR
-	cd cmd/accounting && go install
+    go install
 
 Usage
 =====
